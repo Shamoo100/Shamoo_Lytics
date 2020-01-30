@@ -1,0 +1,200 @@
+---
+title: "Applied Predictive Modelling Labs Group 11"
+author: "Suleiman_Shamsudeen,Taiwo_Oderinde & Omileye_Taiwo"
+date: "1/26/2020"
+output: html_document
+---
+QUESTION 3.1
+```{r}
+library(mlbench)
+data(Glass)
+str(Glass)
+Glass
+```
+**(a) Using visualizations, explore the predictor variables to understand their distributions as well as the relationships between predictors.**
+Using Histogram as our visualizer,the code below plots an histogram over the dataset to show its distribution
+
+```{r}
+Glass_df <- Glass[,1:9]
+par(mfrow = c(3, 3))
+for (i in 1:ncol(Glass_df)) {
+  hist(Glass_df[ ,i], xlab = names(Glass_df[i]), main = paste(names(Glass_df[i]), "Histogram"), col="Green")
+}
+```
+From the above histograms, we can recognize that some distributions follow what seems to be a normal distribution, while others are either left or right skewed; with the exception of Mg that seems to have some sort of “saddle” distribution.
+
+**(b) Do there appear to be any outliers in the data? Are any predictors skewed?**
+Although from histogram we can identify that some of the predictors are skewed ,but to be sure, we will implore the use of Density plot and skewness coeeficent to check how skewed the predictors are,secondly we will also use Box plot to check the outliers
+
+**BOX PLOT**
+```{r}
+Glass_df<- Glass[,1:9]
+par(mfrow = c(3, 3))
+for (i in 1:ncol(Glass_df)) {
+  boxplot(Glass_df[ ,i], ylab = names(Glass_df[i]), horizontal=T,
+          main = paste(names(Glass_df[i]), "Boxplot"), col="Green")
+}
+```
+From the box plot above,all predictors have outliers but extreme whisker cases can be seen on Ba,CA,Si,Ri and Fe Predictors respectively.
+Extending from the box are whiskers. Any values outside the whiskers are considered outliers. Symmetric distributions have a box with equally sized whiskers. Skewed distributions have the boxes with one long and one short whisker. 
+
+**DENSITY PLOT**
+```{r}
+#The chunck of code below is a function which plots a density distribution plot to show how skewed the predictors are
+for (i in 1:ncol(Glass_df)) {
+  d <- density(Glass_df[,i], na.rm = TRUE)
+  plot(d, main = paste(names(Glass_df[i]), "Density"))
+  polygon(d, col="LightGreen")
+}
+```
+From the Density Plots above it can be seen that Mg is left-skewed, while K, Ba, and Fe are right skewed. Ca also seems to be slightly right skewed.
+
+**(c) Are there any relevant transformations of one or more predictors that might improve the classiﬁcation model?**
+The function preProcess() in the caret package calculates the Box-Cox transformation using the maximum likelihood approach and returns information on the estimated values along with convenient rounded values that are within 1.96 standard deviations of the maximum likelihood estimate.This function will be use to test the change in the predictors as regards to transformation
+```{r}
+library(caret)
+transform_df <-preProcess(Glass_df,method = c("BoxCox","center","scale"))
+transform_df
+```
+```{r}
+#The chunck of code below is a function which plots a density distribution plot to show how tranfromed the formerly  skewed the predictors are#
+transformed_df <- predict(transform_df, Glass_df)
+par(mfrow = c(3, 3))
+for (i in 1:9) {
+  d <- density(transformed_df[,i])
+  plot(d, main = paste("transformed density plot of", names(transformed_df[i])), col="red")
+  polygon(d, col="Lightgreen")
+}
+```
+3.1C From all the density plot above there has been a clear improvement in the transformed density plot of       predictor Ca.
+     if the predictors are re applied ..this will greatly improve the classification model 
+
+
+QUESTION3.2
+```{r}
+#import data set
+library(mlbench)
+data(Soybean)
+View(Soybean)
+```
+
+**(a) Investigate the frequency distributions for the categorical predictors. Are any of the distributions degenerate in the ways discussed earlier in this chapter? **
+Using The smoothScatter() function produces a smoothed color density representation of a scatterplot. This is very useful for examining categorical data. 
+```{r}
+Soybean_df <- Soybean[,2:36]
+par(mfrow = c(3, 6))
+for (i in 1:ncol(Soybean_df)) {
+  smoothScatter(Soybean_df[ ,i], ylab = names(Soybean_df[i]))
+}
+```
+```{r}
+#The nearZeroVar() function from the caret library examines the uniqueness of data and returns a table indicating whether each variable has zero or near-zero variance.
+library(caret)
+nearZeroVar(Soybean_df, names = TRUE, saveMetrics=F)
+```
+
+The variables leaf.mild and int.discolor appear to show near-zero variance as well, but running the nearZeroVar() function on the data shows that only mycelium, sclerotia, and leaf.mild have near-zero variance (“nzv”). No variable has zero variance (“zeroVar”).
+
+**3.2B Roughly 18% of the data are missing. Are there particular predictors that are more likely to be missing? Is the pattern of missing data related to the classes?**
+Using The aggr function in the VIM package plots and calculates the amount of missing values in each variable. The dply function is useful for wrangling data into aggregate summaries and is used to find the pattern of missing data related to the classes
+```{r}
+#import the vim package
+library(VIM)
+aggr(Soybean, prop = c(T, T), bars=T, numbers=T, sortVars=T)
+```
+The above is visualizer showing the no of missing values in the data set
+he visualizations produced by the aggr function in the VIM package show a bar chart with the proportion of missing data per variable as well as a grid with the proportion of missing data for variable combinations. The bar chart shows several predictors variables have over 15% of their values missing.The grid shows the combination of all with 82% of data not missing in accordance with the problem description (18% missing). The remainder of the grid shows missing data for variable combinations with each row highlighting the missing values for the group of variables detailed in the x-axis. 
+## Checking if a pattern of missing data related to the classes exists is done by checking if some classes hold most of the incomplete cases. This is accomplished by filtering, grouping, and mutating the data with dplyr. The majority of the missing values are in the phytophthora-rot class which has nearly 10% incomplete cases. The are only four more, out of the eighteen other, variables with incomplete cases. The pattern of missing data is related to the classes. Mostly the phytophthora-rot class however since the other four variables only have between 1% and 2% incomplete cases.##
+```{r}
+library(dplyr)
+Soybean %>%
+  mutate(Total = n()) %>% 
+  filter(!complete.cases(.)) %>%
+  group_by(Class) %>%
+  mutate(Missing = n(), Proportion=Missing/Total) %>%
+  select(Class, Missing, Proportion) %>%
+  unique()
+```
+ The output above of the function shows the exact proportion of missing values per variable.
+ 
+ **(c) Develop a strategy for handling missing data, either by eliminating predictors or imputation**
+ The mice() function in the mice package conducts Multivariate Imputation by Chained Equations (MICE) on multivariate datasets with missing values. The function has over imputation 20 methods that can be applied to the data. The one used with these data is the predictive mean matching method which is currently the most popular in online forums. After the imputations are made, a complete dataset is created using the complete() function. The aggr function from the VIM package used in the previous example (plots and calculates the amount of missing values in each variable) is then reran for comparison
+```{r}
+library(mice)
+MICE <- mice(Soybean, method="pmm", printFlag=F, seed=624)
+aggr(complete(MICE), prop = c(T, T), bars=T, numbers=T, sortVars=T)
+```
+##SUMMARY INTEPRETATION 
+Multivariate Imputation by Chained Equations (MICE) assumes values are missing at random and is implement by imputing missing data for all variables with a simple method, removing the imputations for one variable, imputing the removed data using regression, repeating the remove-regress imputation for every other imputed variable, then continuing the remove-regress imputation in a loop over the whole dataset n times. The simple imputation method used in here is Predictive Mean Matching (PMM) which “imputes missing values by means of the nearest-neighbor donor with distance based on the expected values of the missing variables conditional on the observed covariates.” Given that this is a categorial dataset, the regression method using is logistic regression. After applying this imputation using the mice() function from the mice, there are no missing data left in the data. The aggr function from the VIM package used in the previous example now shows no missing data in any variable.
+
+QUESTION 3.3
+**(a) Start R and use these commands to load the data:**
+```{r}
+library(caret) 
+data(BloodBrain) #LogBBB data set which is the target variable
+data(bbbDescr) #bbbDescr data set which is the predictor ariables
+```
+
+**(b) Do any of the individual predictors have degenerate distributions? **
+Using nearZeroVar() function to check for this values we will have a list of degenerate predictors 
+```{r}
+library(caret)
+nearZeroVar(bbbDescr, names = TRUE, saveMetrics=F)
+```
+To vizualize this claims and be sure of this predictor variable ,a smoothscatter plot will be implored.
+```{r}
+#chunck of code to plot a smoothscatterplot
+bbbDescr_df <- bbbDescr[1:208,2:134]
+par(mfrow = c(3, 6))
+for (i in 1:ncol(bbbDescr)) {
+  smoothScatter(bbbDescr[ ,i], ylab = names(bbbDescr[i]))
+}
+```
+Observing and going through the smoothscatter plot we can clearly see that there are seven degenerate predictors Therefore the nearzero variance are true.
+
+**(c) Generally speaking, are there strong relationships between the predictor data? If so, how could correlations in the predictor set be reduced? Does this have a dramatic eﬀect on the number of predictors available for modeling?**
+To check the effect of correlations on the predictors,we will use the cor function to calculate the correlations between predictor variables:
+```{r}
+correlations <- cor(bbbDescr) 
+dim(correlations)
+library(corrplot)
+corrplot(correlations, order = "hclust")
+```
+From the corrplot above we can observe that we  have both negative(red values) and positive(purple patches) correlating values respectively in the dataset
+However we can reduce this by  filtering them using a threshhold of 0.75
+```{r}
+High_corr <- findCorrelation(correlations, cutoff = 0.75)
+bbbDescr_filtered <- bbbDescr[, -High_corr]
+dim(bbbDescr_filtered)
+```
+
+Visualizing the correleted predictors we use the funtction
+```{r}
+corrplot(cor(bbbDescr_filtered))
+```
+In conlusion we can now see the the correlations have been greatly reduced causing a dramatic  eefect on the number of predictors available for modelling (from 134 to 68 columns)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
