@@ -1,7 +1,8 @@
 # Shamoo_Lytics
-Data Science Enthusiast, Student of knowledge and new trends.
-Step by step pre processing of certain data sets
-Preprocessing steps include
-filtering
-Tranformation
-Visualization
+This Folder Contains all my Personal work as a Data Science Enthusiast
+R.files
+jupyter notebooks
+In class submission
+Models
+Nueral Nets
+Visualizations
