@@ -6,5 +6,5 @@ In class submission
 Models
 Nueral Nets
 Visualizations
-Freeance &
+Freelance &
 Guided Projects 
